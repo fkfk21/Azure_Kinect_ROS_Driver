@@ -84,6 +84,7 @@ class K4AROSDevice : public rclcpp::Node
   k4a_result_t fillPointCloud(const k4a::image& pointcloud_image, std::shared_ptr<sensor_msgs::msg::PointCloud2>& point_cloud);
   k4a_result_t fillColorPointCloud(const k4a::image& pointcloud_image, const k4a::image& color_image,
                                    std::shared_ptr<sensor_msgs::msg::PointCloud2>& point_cloud);
+  rclcpp::Clock system_clock;
 
   void framePublisherThread();
 #if defined(K4A_BODY_TRACKING)

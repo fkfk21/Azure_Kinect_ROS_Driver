@@ -50,7 +50,7 @@ def generate_launch_description():
     return LaunchDescription([
     DeclareLaunchArgument(
         'overwrite_robot_description',
-        default_value="true" ,
+        default_value="true",
         description="Flag to publish a standalone azure_description instead of the default robot_description parameter."),
     ##############################################
     DeclareLaunchArgument(
@@ -60,7 +60,8 @@ def generate_launch_description():
     DeclareLaunchArgument(
         'depth_mode',
         default_value="NFOV_2X2BINNED",
-        description="Set the depth camera mode, which affects FOV, depth range, and camera resolution. See Azure Kinect documentation for full details. Valid options: NFOV_UNBINNED, NFOV_2X2BINNED, WFOV_UNBINNED, WFOV_2X2BINNED, and PASSIVE_IR"),
+        description=("Set the depth camera mode, which affects FOV, depth range, and camera resolution. "
+                     "See Azure Kinect documentation for full details. Valid options: NFOV_UNBINNED, NFOV_2X2BINNED, WFOV_UNBINNED, WFOV_2X2BINNED, and PASSIVE_IR")),
     DeclareLaunchArgument(
         'depth_unit',
         default_value="16UC1",
@@ -83,11 +84,11 @@ def generate_launch_description():
         description="FPS to run both cameras at. Valid options are 5, 15, and 30"),
     DeclareLaunchArgument(
         'point_cloud',
-        default_value="true",
+        default_value="false",
         description="Generate a point cloud from depth data. Requires depth_enabled"),
     DeclareLaunchArgument(
         'rgb_point_cloud',
-        default_value="true",
+        default_value="false",
         description="Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled"),
     DeclareLaunchArgument(
         'point_cloud_in_depth_frame',
@@ -95,7 +96,7 @@ def generate_launch_description():
         description="Whether the RGB pointcloud is rendered in the depth frame (true) or RGB frame (false). Will either match the resolution of the depth camera (true) or the RGB camera (false)."),
     DeclareLaunchArgument( # Not a parameter of the node, rather a launch file parameter
         'required',
-        default_value="false",
+        default_value="true",
         description="Argument which specified if the entire launch file should terminate if the node dies"),
     DeclareLaunchArgument(
         'sensor_sn',

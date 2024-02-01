@@ -46,7 +46,8 @@ K4AROSDevice::K4AROSDevice()
     // clang-format on
     last_capture_time_usec_(0),
     last_imu_time_usec_(0),
-    imu_stream_end_of_file_(false)
+    imu_stream_end_of_file_(false),
+    system_clock(RCL_SYSTEM_TIME)
 {
   // Declare an image transport
   auto image_transport_ = new image_transport::ImageTransport(static_cast<rclcpp::Node::SharedPtr>(this));
@@ -60,6 +61,7 @@ K4AROSDevice::K4AROSDevice()
   // Declare node parameters
   this->declare_parameter("depth_enabled", rclcpp::ParameterValue(true));
   this->declare_parameter("depth_mode", rclcpp::ParameterValue("NFOV_UNBINNED"));
+  this->declare_parameter("depth_unit", sensor_msgs::image_encodings::TYPE_16UC1);
   this->declare_parameter("color_enabled", rclcpp::ParameterValue(false));
   this->declare_parameter("color_format", rclcpp::ParameterValue("bgra"));
   this->declare_parameter("color_resolution", rclcpp::ParameterValue("720P"));
@@ -874,6 +876,7 @@ void K4AROSDevice::framePublisherThread()
 
   while (running_ && rclcpp::ok())
   {
+    rcl_time_point_value_t start_time = system_clock.now().nanoseconds();
     if (k4a_device_)
     {
       if (!k4a_device_.get_capture(&capture, waitTime))
@@ -1024,6 +1027,7 @@ void K4AROSDevice::framePublisherThread()
             // Re-synchronize the header timestamps since we cache the camera calibration message
             depth_rect_camera_info.header.stamp = capture_time;
             depth_rect_camerainfo_publisher_->publish(depth_rect_camera_info);
+            RCLCPP_INFO(this->get_logger(), "%ld", system_clock.now().nanoseconds() - start_time);
           }
         }
 
@@ -1172,7 +1176,6 @@ void K4AROSDevice::framePublisherThread()
         pointcloud_publisher_->publish(*point_cloud);
       }
     }
-
     rclcpp::spin_some(shared_from_this());
     loop_rate.sleep();
   }
