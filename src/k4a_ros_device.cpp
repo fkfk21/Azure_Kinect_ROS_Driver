@@ -35,7 +35,7 @@ using namespace visualization_msgs::msg;
 #endif
 
 K4AROSDevice::K4AROSDevice()
-  : Node("k4a_ros_device_node"),
+  : Node("k4a_ros_device_node", rclcpp::NodeOptions().use_intra_process_comms(true)),
     k4a_device_(nullptr),
     k4a_playback_handle_(nullptr),
 // clang-format off
@@ -60,12 +60,12 @@ K4AROSDevice::K4AROSDevice()
 
   // Declare node parameters
   this->declare_parameter("depth_enabled", rclcpp::ParameterValue(true));
-  this->declare_parameter("depth_mode", rclcpp::ParameterValue("NFOV_UNBINNED"));
+  this->declare_parameter("depth_mode", rclcpp::ParameterValue("NFOV_2X2BINNED"));
   this->declare_parameter("depth_unit", sensor_msgs::image_encodings::TYPE_16UC1);
   this->declare_parameter("color_enabled", rclcpp::ParameterValue(true));
   this->declare_parameter("color_format", rclcpp::ParameterValue("bgra"));
   this->declare_parameter("color_resolution", rclcpp::ParameterValue("720P"));
-  this->declare_parameter("fps", rclcpp::ParameterValue(5));
+  this->declare_parameter("fps", rclcpp::ParameterValue(30));
   this->declare_parameter("point_cloud", rclcpp::ParameterValue(true));
   this->declare_parameter("rgb_point_cloud", rclcpp::ParameterValue(false));
   this->declare_parameter("point_cloud_in_depth_frame", rclcpp::ParameterValue(true));
@@ -1026,7 +1026,7 @@ void K4AROSDevice::framePublisherThread()
 
             // Re-synchronize the header timestamps since we cache the camera calibration message
             depth_rect_camera_info.header.stamp = capture_time;
-            depth_rect_camerainfo_publisher_->publish(depth_rect_camera_info);
+            depth_rect_camerainfo_publisher_->publish(std::move(depth_rect_camera_info));
             RCLCPP_INFO(this->get_logger(), "%ld", system_clock.now().nanoseconds() - start_time);
           }
         }
@@ -1098,7 +1098,7 @@ void K4AROSDevice::framePublisherThread()
 
           rgb_raw_frame->header.stamp = capture_time;
           rgb_raw_frame->header.frame_id = calibration_data_.tf_prefix_ + calibration_data_.rgb_camera_frame_;
-          rgb_raw_publisher_.publish(rgb_raw_frame);
+          rgb_raw_publisher_.publish(std::move(rgb_raw_frame));
 
           // Re-synchronize the header timestamps since we cache the camera calibration message
           rgb_raw_camera_info.header.stamp = capture_time;
