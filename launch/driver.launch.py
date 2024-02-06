@@ -176,19 +176,4 @@ def generate_launch_description():
         name='joint_state_publisher',
         arguments=[urdf_path],
         condition=conditions.IfCondition(launch.substitutions.LaunchConfiguration("overwrite_robot_description"))),
-    # If flag overwrite_robot_description is not set:
-    launch_ros.actions.Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        name='robot_state_publisher',
-        parameters = [{'robot_description' : urdf}],
-        remappings=remappings,
-        condition=conditions.UnlessCondition(launch.substitutions.LaunchConfiguration("overwrite_robot_description"))),
-    launch_ros.actions.Node(
-        package='joint_state_publisher',
-        executable='joint_state_publisher',
-        name='joint_state_publisher',
-        arguments=[urdf_path],
-        remappings=remappings,
-        condition=conditions.UnlessCondition(launch.substitutions.LaunchConfiguration("overwrite_robot_description"))),
     ])

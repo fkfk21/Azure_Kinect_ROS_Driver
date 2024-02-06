@@ -62,7 +62,7 @@ K4AROSDevice::K4AROSDevice()
   this->declare_parameter("depth_enabled", rclcpp::ParameterValue(true));
   this->declare_parameter("depth_mode", rclcpp::ParameterValue("NFOV_UNBINNED"));
   this->declare_parameter("depth_unit", sensor_msgs::image_encodings::TYPE_16UC1);
-  this->declare_parameter("color_enabled", rclcpp::ParameterValue(false));
+  this->declare_parameter("color_enabled", rclcpp::ParameterValue(true));
   this->declare_parameter("color_format", rclcpp::ParameterValue("bgra"));
   this->declare_parameter("color_resolution", rclcpp::ParameterValue("720P"));
   this->declare_parameter("fps", rclcpp::ParameterValue(5));

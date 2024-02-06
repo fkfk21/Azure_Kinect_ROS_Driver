@@ -109,6 +109,7 @@ target_link_libraries(${PROJECT_NAME}_node
 ## Install ##
 #############
 
+
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
 
@@ -127,5 +128,69 @@ install(
   urdf
   DESTINATION share/${PROJECT_NAME}/
 )
+
+# ========
+# make library
+
+set(EXPORT_NAME azurekinect_nodelib)
+set(LOCAL_INSTALL_DIR "$ENV{HOME}/.local")
+set(LIB_NAME azurekinect_nodelib)
+
+add_library(${LIB_NAME} 
+    src/k4a_ros_bridge_node.cpp
+    src/k4a_ros_device.cpp
+    src/k4a_ros_device_params.cpp
+    src/k4a_calibration_transform_data.cpp
+)
+ament_target_dependencies(${LIB_NAME} 
+    rclcpp 
+    std_msgs 
+    sensor_msgs
+    visualization_msgs
+    image_transport
+    tf2
+    tf2_ros
+    tf2_geometry_msgs
+    cv_bridge
+    angles
+)
+install(TARGETS ${LIB_NAME}
+    EXPORT ${LIB_NAME}Targets
+    LIBRARY DESTINATION ${LOCAL_INSTALL_DIR}/lib
+    ARCHIVE DESTINATION ${LOCAL_INSTALL_DIR}/lib
+    RUNTIME DESTINATION ${LOCAL_INSTALL_DIR}/bin
+    INCLUDES DESTINATION ${LOCAL_INSTALL_DIR}/include
+)
+install(DIRECTORY include/ DESTINATION ${LOCAL_INSTALL_DIR}/include)
+install(EXPORT ${LIB_NAME}Targets
+    FILE ${EXPORT_NAME}Targets.cmake
+    NAMESPACE ${EXPORT_NAME}::
+    DESTINATION ${LOCAL_INSTALL_DIR}/lib/cmake/${EXPORT_NAME}
+)
+target_link_libraries(${LIB_NAME}
+  ${K4A_LIBS}
+)
+file(WRITE ${PROJECT_BINARY_DIR}/${EXPORT_NAME}Config.cmake
+    "
+include(\${CMAKE_CURRENT_LIST_DIR}/${EXPORT_NAME}Targets.cmake)
+list(INSERT CMAKE_MODULE_PATH 0 \${CMAKE_CURRENT_LIST_DIR})
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(angles REQUIRED)
+find_package(k4a 1.3.0 QUIET MODULE REQUIRED)
+find_package(k4abt 1.0.0 QUIET MODULE)
+    ")
+# さいごに、先ほどの~Congfig.cmakeを~Targets.cmakeと同じ場所に移動して終了
+install(FILES ${PROJECT_BINARY_DIR}/${EXPORT_NAME}Config.cmake DESTINATION ${LOCAL_INSTALL_DIR}/lib/cmake/${EXPORT_NAME}/)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/cmake/ DESTINATION ${LOCAL_INSTALL_DIR}/lib/cmake/${EXPORT_NAME}/)
 
 ament_package()
