@@ -57,6 +57,7 @@ Module.symvers
 Mkfile.old
 dkms.conf
 .venv_azure_kinect
+.venv
 /build
 /install
 /log
