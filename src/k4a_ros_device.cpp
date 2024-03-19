@@ -34,8 +34,8 @@ using namespace std;
 using namespace visualization_msgs::msg;
 #endif
 
-K4AROSDevice::K4AROSDevice()
-  : Node("k4a_ros_device_node", rclcpp::NodeOptions().use_intra_process_comms(true)),
+K4AROSDevice::K4AROSDevice(const rclcpp::NodeOptions &options)
+  : Node("k4a_ros_device_node", options),
     k4a_device_(nullptr),
     k4a_playback_handle_(nullptr),
 // clang-format off
@@ -249,7 +249,7 @@ K4AROSDevice::K4AROSDevice()
   }
   else if (params_.color_format == "bgra")
   {
-    rgb_raw_publisher_ = image_transport_->advertise("rgb/image_raw", 1, true);
+    rgb_raw_publisher_ = this->create_publisher<Image>("rgb/image_raw", 1); // image_transport_->advertise("rgb/image_raw", 1, true);
   }
   rgb_raw_camerainfo_publisher_ = this->create_publisher<CameraInfo>("rgb/camera_info", 1);
 
@@ -273,6 +273,8 @@ K4AROSDevice::K4AROSDevice()
   if (params_.point_cloud || params_.rgb_point_cloud) {
     pointcloud_publisher_ = this->create_publisher<PointCloud2>("points2", 1);
   }
+  this->startCameras();
+  this->startImu();
 
 #if defined(K4A_BODY_TRACKING)
   if (params_.body_tracking_enabled) {
@@ -370,7 +372,9 @@ k4a_result_t K4AROSDevice::startCameras()
   running_ = true;
 
   // Start the thread that will poll the cameras and publish frames
-  frame_publisher_thread_ = thread(&K4AROSDevice::framePublisherThread, this);
+  // frame_publisher_thread_ = thread(&K4AROSDevice::framePublisherThread, this);
+  this->camera_timer_cg_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+  this->camera_timer_ = this->create_wall_timer(std::chrono::milliseconds(1000/params_.fps), std::bind(&K4AROSDevice::framePublisherThread, this), this->camera_timer_cg_);
 #if defined(K4A_BODY_TRACKING)
   body_publisher_thread_ = thread(&K4AROSDevice::bodyPublisherThread, this);
 #endif
@@ -387,7 +391,9 @@ k4a_result_t K4AROSDevice::startImu()
   }
 
   // Start the IMU publisher thread
-  imu_publisher_thread_ = thread(&K4AROSDevice::imuPublisherThread, this);
+  // imu_publisher_thread_ = thread(&K4AROSDevice::imuPublisherThread, this);
+  this->imu_timer_cg_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+  this->imu_timer_ = this->create_wall_timer(std::chrono::milliseconds(300), std::bind(&K4AROSDevice::imuPublisherThread, this), this->imu_timer_cg_);
 
   return K4A_RESULT_SUCCEEDED;
 }
@@ -554,6 +560,7 @@ k4a_result_t K4AROSDevice::renderBGRA32ToROS(std::unique_ptr<sensor_msgs::msg::I
   rgb_image->data = std::vector<unsigned char>(rgb_buffer_mat.data, rgb_buffer_mat.data + rgb_buffer_mat.rows * rgb_buffer_mat.cols*4);
   rgb_image->width = rgb_buffer_mat.cols;
   rgb_image->height = rgb_buffer_mat.rows;
+  rgb_image->step = rgb_buffer_mat.cols * 4 ;
   // rgb_image = cv_bridge::CvImage(std_msgs::msg::Header(), sensor_msgs::image_encodings::BGRA8, rgb_buffer_mat).toImageMsg();
 
   return K4A_RESULT_SUCCEEDED;
@@ -854,7 +861,7 @@ k4a_result_t K4AROSDevice::renderBodyIndexMapToROS(std::shared_ptr<sensor_msgs::
 
 void K4AROSDevice::framePublisherThread()
 {
-  rclcpp::Rate loop_rate(params_.fps);
+  // rclcpp::Rate loop_rate(params_.fps);
 
   k4a_result_t result;
 
@@ -878,8 +885,8 @@ void K4AROSDevice::framePublisherThread()
   const std::chrono::milliseconds regularFrameWaitTime = std::chrono::milliseconds(1000 * 5 / params_.fps);
   std::chrono::milliseconds waitTime = firstFrameWaitTime;
 
-  while (running_ && rclcpp::ok())
-  {
+  // while (running_ && rclcpp::ok())
+  // {
     rcl_time_point_value_t start_time = system_clock.now().nanoseconds();
     if (k4a_device_)
     {
@@ -1102,7 +1109,8 @@ void K4AROSDevice::framePublisherThread()
 
           rgb_raw_frame->header.stamp = capture_time;
           rgb_raw_frame->header.frame_id = calibration_data_.tf_prefix_ + calibration_data_.rgb_camera_frame_;
-          rgb_raw_publisher_.publish(std::move(rgb_raw_frame));
+          printf("azurekinect %p %d\n", rgb_raw_frame->data.data(), rgb_raw_frame->data[0]);
+          rgb_raw_publisher_->publish(std::move(rgb_raw_frame));
 
           // Re-synchronize the header timestamps since we cache the camera calibration message
           rgb_raw_camera_info.header.stamp = capture_time;
@@ -1180,9 +1188,9 @@ void K4AROSDevice::framePublisherThread()
         pointcloud_publisher_->publish(*point_cloud);
       }
     }
-    rclcpp::spin_some(shared_from_this());
-    loop_rate.sleep();
-  }
+    // rclcpp::spin_some(shared_from_this());
+    // loop_rate.sleep();
+  // }
 }
 
 #if defined(K4A_BODY_TRACKING)
@@ -1279,7 +1287,7 @@ k4a_imu_sample_t K4AROSDevice::computeMeanIMUSample(const std::vector<k4a_imu_sa
 
 void K4AROSDevice::imuPublisherThread()
 {
-  rclcpp::Rate loop_rate(300);
+  // rclcpp::Rate loop_rate(300);
 
   k4a_result_t result;
   k4a_imu_sample_t sample;
@@ -1291,8 +1299,8 @@ void K4AROSDevice::imuPublisherThread()
   accumulated_samples.reserve(target_count);
   bool throttling = target_count > 1;
 
-  while (running_ && rclcpp::ok())
-  {
+  // while (running_ && rclcpp::ok())
+  // {
     if (k4a_device_)
     {
       // IMU messages are delivered in batches at 300 Hz. Drain the queue of IMU messages by
@@ -1386,8 +1394,8 @@ void K4AROSDevice::imuPublisherThread()
         }
       }
     }
-    loop_rate.sleep();
-  }
+    // loop_rate.sleep();
+  // }
 }
 
 std::chrono::microseconds K4AROSDevice::getCaptureTimestamp(const k4a::capture& capture)
