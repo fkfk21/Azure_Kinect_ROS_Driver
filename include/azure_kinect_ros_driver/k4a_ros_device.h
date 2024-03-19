@@ -61,7 +61,7 @@ class K4AROSDevice : public rclcpp::Node
 
   k4a_result_t getImuFrame(const k4a_imu_sample_t& capture, std::shared_ptr<sensor_msgs::msg::Imu>& imu_frame);
 
-  k4a_result_t getRbgFrame(const k4a::capture& capture, std::shared_ptr<sensor_msgs::msg::Image>& rgb_frame, bool rectified);
+  k4a_result_t getRbgFrame(const k4a::capture& capture, std::unique_ptr<sensor_msgs::msg::Image>& rgb_frame, bool rectified);
   k4a_result_t getJpegRgbFrame(const k4a::capture& capture, std::shared_ptr<sensor_msgs::msg::CompressedImage>& jpeg_image);
 
   k4a_result_t getIrFrame(const k4a::capture& capture, std::shared_ptr<sensor_msgs::msg::Image>& ir_image);
@@ -77,7 +77,7 @@ class K4AROSDevice : public rclcpp::Node
 #endif
 
  private:
-  k4a_result_t renderBGRA32ToROS(std::shared_ptr<sensor_msgs::msg::Image>& rgb_frame, k4a::image& k4a_bgra_frame);
+  k4a_result_t renderBGRA32ToROS(std::unique_ptr<sensor_msgs::msg::Image>& rgb_frame, k4a::image& k4a_bgra_frame);
   k4a_result_t renderDepthToROS(std::shared_ptr<sensor_msgs::msg::Image>& depth_image, k4a::image& k4a_depth_frame);
   k4a_result_t renderIrToROS(std::shared_ptr<sensor_msgs::msg::Image>& ir_image, k4a::image& k4a_ir_frame);
 

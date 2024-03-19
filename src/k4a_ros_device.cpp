@@ -510,7 +510,7 @@ k4a_result_t K4AROSDevice::getJpegRgbFrame(const k4a::capture& capture, std::sha
   return K4A_RESULT_SUCCEEDED;
 }
 
-k4a_result_t K4AROSDevice::getRbgFrame(const k4a::capture& capture, std::shared_ptr<sensor_msgs::msg::Image>& rgb_image,
+k4a_result_t K4AROSDevice::getRbgFrame(const k4a::capture& capture, std::unique_ptr<sensor_msgs::msg::Image>& rgb_image,
                                        bool rectified = false)
 {
   k4a::image k4a_bgra_frame = capture.get_color_image();
@@ -545,12 +545,16 @@ k4a_result_t K4AROSDevice::getRbgFrame(const k4a::capture& capture, std::shared_
 
 // Helper function that renders any BGRA K4A frame to a ROS ImagePtr. Useful for rendering intermediary frames
 // during debugging of image processing functions
-k4a_result_t K4AROSDevice::renderBGRA32ToROS(std::shared_ptr<sensor_msgs::msg::Image>& rgb_image, k4a::image& k4a_bgra_frame)
+k4a_result_t K4AROSDevice::renderBGRA32ToROS(std::unique_ptr<sensor_msgs::msg::Image>& rgb_image, k4a::image& k4a_bgra_frame)
 {
   cv::Mat rgb_buffer_mat(k4a_bgra_frame.get_height_pixels(), k4a_bgra_frame.get_width_pixels(), CV_8UC4,
                          k4a_bgra_frame.get_buffer());
 
-  rgb_image = cv_bridge::CvImage(std_msgs::msg::Header(), sensor_msgs::image_encodings::BGRA8, rgb_buffer_mat).toImageMsg();
+  rgb_image->encoding = "bgra8";
+  rgb_image->data = std::vector<unsigned char>(rgb_buffer_mat.data, rgb_buffer_mat.data + rgb_buffer_mat.rows * rgb_buffer_mat.cols*4);
+  rgb_image->width = rgb_buffer_mat.cols;
+  rgb_image->height = rgb_buffer_mat.rows;
+  // rgb_image = cv_bridge::CvImage(std_msgs::msg::Header(), sensor_msgs::image_encodings::BGRA8, rgb_buffer_mat).toImageMsg();
 
   return K4A_RESULT_SUCCEEDED;
 }
@@ -927,8 +931,8 @@ void K4AROSDevice::framePublisherThread()
     }
 
     CompressedImage::SharedPtr rgb_jpeg_frame(new CompressedImage);
-    Image::SharedPtr rgb_raw_frame(new Image);
-    Image::SharedPtr rgb_rect_frame(new Image);
+    Image::UniquePtr rgb_raw_frame(new Image);
+    Image::UniquePtr rgb_rect_frame(new Image);
     Image::SharedPtr depth_raw_frame(new Image);
     Image::SharedPtr depth_rect_frame(new Image);
     Image::SharedPtr ir_raw_frame(new Image);
@@ -1126,7 +1130,7 @@ void K4AROSDevice::framePublisherThread()
 
           rgb_rect_frame->header.stamp = capture_time;
           rgb_rect_frame->header.frame_id = calibration_data_.tf_prefix_ + calibration_data_.depth_camera_frame_;
-          rgb_rect_publisher_.publish(rgb_rect_frame);
+          rgb_rect_publisher_.publish(std::move(rgb_rect_frame));
 
           // Re-synchronize the header timestamps since we cache the camera calibration message
           rgb_rect_camera_info.header.stamp = capture_time;
