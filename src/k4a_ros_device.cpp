@@ -374,7 +374,7 @@ k4a_result_t K4AROSDevice::startCameras()
   // Start the thread that will poll the cameras and publish frames
   // frame_publisher_thread_ = thread(&K4AROSDevice::framePublisherThread, this);
   this->camera_timer_cg_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
-  this->camera_timer_ = this->create_wall_timer(std::chrono::milliseconds(1000/params_.fps), std::bind(&K4AROSDevice::framePublisherThread, this), this->camera_timer_cg_);
+  this->camera_timer_ = this->create_wall_timer(std::chrono::milliseconds(1000/params_.fps+1), std::bind(&K4AROSDevice::framePublisherThread, this), this->camera_timer_cg_);
 #if defined(K4A_BODY_TRACKING)
   body_publisher_thread_ = thread(&K4AROSDevice::bodyPublisherThread, this);
 #endif
