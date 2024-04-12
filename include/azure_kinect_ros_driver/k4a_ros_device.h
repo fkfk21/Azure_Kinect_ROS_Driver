@@ -37,7 +37,7 @@
 class K4AROSDevice : public rclcpp::Node
 {
  public:
-  K4AROSDevice();
+  K4AROSDevice(const rclcpp::NodeOptions &options = rclcpp::NodeOptions().use_intra_process_comms(true));
 
   ~K4AROSDevice();
 
@@ -61,7 +61,7 @@ class K4AROSDevice : public rclcpp::Node
 
   k4a_result_t getImuFrame(const k4a_imu_sample_t& capture, std::shared_ptr<sensor_msgs::msg::Imu>& imu_frame);
 
-  k4a_result_t getRbgFrame(const k4a::capture& capture, std::shared_ptr<sensor_msgs::msg::Image>& rgb_frame, bool rectified);
+  k4a_result_t getRbgFrame(const k4a::capture& capture, std::unique_ptr<sensor_msgs::msg::Image>& rgb_frame, bool rectified);
   k4a_result_t getJpegRgbFrame(const k4a::capture& capture, std::shared_ptr<sensor_msgs::msg::CompressedImage>& jpeg_image);
 
   k4a_result_t getIrFrame(const k4a::capture& capture, std::shared_ptr<sensor_msgs::msg::Image>& ir_image);
@@ -77,7 +77,7 @@ class K4AROSDevice : public rclcpp::Node
 #endif
 
  private:
-  k4a_result_t renderBGRA32ToROS(std::shared_ptr<sensor_msgs::msg::Image>& rgb_frame, k4a::image& k4a_bgra_frame);
+  k4a_result_t renderBGRA32ToROS(std::unique_ptr<sensor_msgs::msg::Image>& rgb_frame, k4a::image& k4a_bgra_frame);
   k4a_result_t renderDepthToROS(std::shared_ptr<sensor_msgs::msg::Image>& depth_image, k4a::image& k4a_depth_frame);
   k4a_result_t renderIrToROS(std::shared_ptr<sensor_msgs::msg::Image>& ir_image, k4a::image& k4a_ir_frame);
 
@@ -116,7 +116,8 @@ class K4AROSDevice : public rclcpp::Node
   void printTimestampDebugMessage(const std::string& name, const rclcpp::Time& timestamp);
 
 
-  image_transport::Publisher rgb_raw_publisher_;
+  // image_transport::Publisher rgb_raw_publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rgb_raw_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr rgb_jpeg_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr rgb_raw_camerainfo_publisher_;
 
@@ -135,6 +136,12 @@ class K4AROSDevice : public rclcpp::Node
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_orientation_publisher_;
 
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_publisher_;
+
+  rclcpp::CallbackGroup::SharedPtr camera_timer_cg_;
+  rclcpp::TimerBase::SharedPtr camera_timer_;
+
+  rclcpp::CallbackGroup::SharedPtr imu_timer_cg_;
+  rclcpp::TimerBase::SharedPtr imu_timer_;
 
 #if defined(K4A_BODY_TRACKING)
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr body_marker_publisher_;
