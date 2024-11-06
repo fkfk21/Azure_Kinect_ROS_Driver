@@ -244,12 +244,13 @@ K4AROSDevice::K4AROSDevice()
     // This technique is described in:
     // http://wiki.ros.org/compressed_image_transport#Publishing_compressed_images_directly
     rgb_jpeg_publisher_ = this->create_publisher<CompressedImage>("rgb/image_raw/compressed", 1);
+    rgb_raw_camerainfo_publisher_ = this->create_publisher<CameraInfo>("rgb/image_raw/camera_info", 1);
   }
   else if (params_.color_format == "bgra")
   {
     rgb_raw_publisher_ = image_transport_->advertise("rgb/image_raw", 1, true);
+    rgb_raw_camerainfo_publisher_ = this->create_publisher<CameraInfo>("rgb/camera_info", 1);
   }
-  rgb_raw_camerainfo_publisher_ = this->create_publisher<CameraInfo>("rgb/camera_info", 1);
 
   depth_raw_publisher_ = image_transport_->advertise("depth/image_raw", 1, true);
   depth_raw_camerainfo_publisher_ = this->create_publisher<CameraInfo>("depth/camera_info", 1);
@@ -503,7 +504,8 @@ k4a_result_t K4AROSDevice::getJpegRgbFrame(const k4a::capture& capture, std::sha
   }
 
   const uint8_t* jpeg_frame_buffer = k4a_jpeg_frame.get_buffer();
-  jpeg_image->format = "bgra8; jpeg compressed bgr8";
+  // jpeg_image->format = "bgra8; jpeg compressed bgr8";
+  jpeg_image->format = "jpeg";
   jpeg_image->data.assign(jpeg_frame_buffer, jpeg_frame_buffer + k4a_jpeg_frame.get_size());
   return K4A_RESULT_SUCCEEDED;
 }
@@ -768,7 +770,7 @@ k4a_result_t K4AROSDevice::getBodyMarker(const k4abt_body_t& body, std::shared_p
 
   // Set the lifetime to 0.25 to prevent flickering for even 5fps configurations.
   // New markers with the same ID will replace old markers as soon as they arrive.
-  marker_msg->lifetime = rclcpp::Duration(0.25);
+  marker_msg->lifetime = rclcpp::Duration::from_seconds(0.25);
   marker_msg->id = body.id * 100 + jointType;
   marker_msg->type = Marker::SPHERE;
 

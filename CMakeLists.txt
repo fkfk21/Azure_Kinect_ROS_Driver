@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 cmake_minimum_required(VERSION 3.5)
-project(azure_kinect_ros_driver LANGUAGES C CXX)
+project(azure_kinect_ros_driver)
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
@@ -79,11 +79,11 @@ message("Finding K4A SDK binaries")
 unset(k4a_DIR CACHE)
 
 # Force running the Findk4a.cmake module
-find_package(k4a 1.3.0 QUIET MODULE REQUIRED)
+find_package(k4a 1.4.0 QUIET MODULE REQUIRED)
 set(K4A_LIBS k4a::k4a;k4a::k4arecord)
 
 # Try to find and enable the body tracking SDK
-find_package(k4abt 1.0.0 QUIET MODULE)
+find_package(k4abt 1.1.0 QUIET MODULE REQUIRED)
 if (k4abt_FOUND)
   list(APPEND K4A_LIBS k4abt::k4abt)
   message(STATUS "Body Tracking SDK found: compiling support for Body Tracking")
@@ -114,9 +114,9 @@ target_link_libraries(${PROJECT_NAME}_node
 
 ## Mark executables and/or libraries for installation
 install(TARGETS ${PROJECT_NAME}_node
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  #   ARCHIVE DESTINATION lib
+  #   LIBRARY DESTINATION lib
+  #   RUNTIME DESTINATION bin
   DESTINATION lib/${PROJECT_NAME}
 )
 
